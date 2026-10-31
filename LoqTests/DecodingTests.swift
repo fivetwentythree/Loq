@@ -1,5 +1,5 @@
 import XCTest
-@testable import Subvox
+@testable import Loq
 
 final class DecodingTests: XCTestCase {
     /// A synthetic "word": a burst of rotation at `frequency` cycles over the segment.

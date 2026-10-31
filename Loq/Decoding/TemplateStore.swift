@@ -10,6 +10,7 @@ struct Dataset: Codable {
 /// Persists the training set as JSON in Application Support.
 enum TemplateStore {
     static var url: URL {
+        // Preserve the pre-Loq data location so renaming the app retains existing training.
         let dir = URL.applicationSupportDirectory.appending(path: "Subvox", directoryHint: .isDirectory)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir.appending(path: "dataset.json")
@@ -26,7 +27,7 @@ enum TemplateStore {
             let data = try JSONEncoder().encode(dataset)
             try data.write(to: url, options: .atomic)
         } catch {
-            print("Subvox: failed to save dataset: \(error)")
+            print("Loq: failed to save dataset: \(error)")
         }
     }
 }

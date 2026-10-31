@@ -23,6 +23,19 @@ struct ContentView: View {
             ToolbarItem {
                 RecordToolbarButton()
             }
+            ToolbarItem {
+                if model.audio.isRunning {
+                    Button("Stop Mic", systemImage: "mic.slash", action: model.stopMicrophone)
+                        .help("Stop the microphone, transcription, and any recording")
+                }
+            }
+            ToolbarItem {
+                Button(model.hasActiveSensors ? "Pause All" : "Start Motion",
+                       systemImage: model.hasActiveSensors ? "pause.circle" : "play.circle") {
+                    model.hasActiveSensors ? model.pauseSensors() : model.startMotion()
+                }
+                .help(model.hasActiveSensors ? "Stop motion, microphone, transcription, and recording" : "Start AirPods motion; the microphone stays off")
+            }
         }
         .navigationTitle(model.screen.rawValue)
     }
@@ -38,12 +51,13 @@ private struct RecordToolbarButton: View {
     var body: some View {
         let recorder = model.recorder
         Button {
-            recorder.isRecording ? recorder.stop() : recorder.start(audio: model.audio)
+            model.toggleRecording()
         } label: {
-            Label(recorder.isRecording ? "Stop Recording" : "Record Session",
+            Label(recorder.isRecording ? "Stop Recording & Mic" : "Record Session",
                   systemImage: recorder.isRecording ? "stop.circle.fill" : "record.circle")
         }
         .tint(recorder.isRecording ? .red : nil)
-        .help("Record synchronized motion CSV + audio to ~/Documents/Subvox/Sessions")
+        .disabled(!recorder.isRecording && model.motion.status != .streaming)
+        .help("Record motion and optional microphone audio. Stop also turns off the microphone.")
     }
 }

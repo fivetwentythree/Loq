@@ -1,49 +1,56 @@
-name: Subvox
+name: Loq
 options:
-  bundleIdPrefix: com.joeblau
+  bundleIdPrefix: local
   deploymentTarget:
     macOS: "14.0"
   createIntermediateGroups: true
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    DEVELOPMENT_TEAM: K78G42H4U2
-    CODE_SIGN_STYLE: Automatic
-    MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    MARKETING_VERSION: "0.2.0"
+    CURRENT_PROJECT_VERSION: "2"
 targets:
-  Subvox:
+  Loq:
     type: application
     platform: macOS
-    sources: [Subvox]
+    sources:
+      - path: Loq
+        excludes: [Info.plist, Loq.entitlements]
     info:
-      path: Subvox/Info.plist
+      path: Loq/Info.plist
       properties:
-        CFBundleDisplayName: Subvox
+        CFBundleDisplayName: Loq
         LSApplicationCategoryType: public.app-category.developer-tools
-        NSMotionUsageDescription: Subvox reads AirPods head-motion data to study whether mouthed words can be decoded into text.
-        NSMicrophoneUsageDescription: Subvox records microphone audio alongside motion data and transcribes whispered speech for comparison.
-        NSSpeechRecognitionUsageDescription: Subvox transcribes microphone audio on-device as a reference for the motion decoder.
+        NSMotionUsageDescription: Loq reads AirPods head-motion data to study whether mouthed words can be decoded into text.
+        NSMicrophoneUsageDescription: Loq records microphone audio alongside motion data and transcribes whispered speech for comparison.
+        NSSpeechRecognitionUsageDescription: Loq transcribes microphone audio on-device as a reference for the motion decoder.
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.joeblau.subvox
-        CODE_SIGN_IDENTITY: Apple Development
-        ENABLE_HARDENED_RUNTIME: NO
-  SubvoxTests:
+        PRODUCT_BUNDLE_IDENTIFIER: local.subvox
+        CODE_SIGN_ENTITLEMENTS: Loq/Loq.entitlements
+        ENABLE_APP_SANDBOX: YES
+        ENABLE_HARDENED_RUNTIME: YES
+      configs:
+        Release:
+          CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
+  LoqTests:
     type: bundle.unit-test
     platform: macOS
-    sources: [SubvoxTests]
+    sources: [LoqTests]
     dependencies:
-      - target: Subvox
+      - target: Loq
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.joeblau.subvox.tests
+        PRODUCT_BUNDLE_IDENTIFIER: local.subvox.tests
         GENERATE_INFOPLIST_FILE: YES
 schemes:
-  Subvox:
+  Loq:
     build:
       targets:
-        Subvox: all
-        SubvoxTests: [test]
+        Loq: all
+        LoqTests: [test]
     test:
-      targets: [SubvoxTests]
+      targets: [LoqTests]

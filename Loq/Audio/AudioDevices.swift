@@ -5,6 +5,12 @@ enum AudioDevices {
     struct Device: Identifiable, Hashable {
         let id: AudioDeviceID
         let name: String
+        var transportType: UInt32 = 0
+
+        var isBuiltIn: Bool { transportType == kAudioDeviceTransportTypeBuiltIn }
+        var isBluetooth: Bool {
+            transportType == kAudioDeviceTransportTypeBluetooth || transportType == kAudioDeviceTransportTypeBluetoothLE
+        }
     }
 
     static func inputDevices() -> [Device] {
@@ -20,7 +26,7 @@ enum AudioDevices {
 
         return ids.compactMap { id in
             guard inputChannelCount(id) > 0 else { return nil }
-            return Device(id: id, name: name(of: id) ?? "Device \(id)")
+            return Device(id: id, name: name(of: id) ?? "Device \(id)", transportType: transportType(of: id))
         }
     }
 
@@ -33,6 +39,35 @@ enum AudioDevices {
         var size = UInt32(MemoryLayout<AudioDeviceID>.size)
         let status = AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, &id)
         return status == noErr && id != 0 ? id : nil
+    }
+
+    static func defaultOutputName() -> String? {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain)
+        var id = AudioDeviceID(0)
+        var size = UInt32(MemoryLayout<AudioDeviceID>.size)
+        guard AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, &id) == noErr else { return nil }
+        return name(of: id)
+    }
+
+    /// Keep the AirPods out of the headset microphone profile unless explicitly selected.
+    static func recommendedInput(in devices: [Device], defaultID: AudioDeviceID?) -> Device? {
+        devices.first(where: \.isBuiltIn)
+            ?? devices.first(where: { $0.id == defaultID && !$0.isBluetooth })
+            ?? devices.first(where: { !$0.isBluetooth })
+    }
+
+    private static func transportType(of id: AudioDeviceID) -> UInt32 {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyTransportType,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain)
+        var value: UInt32 = 0
+        var size = UInt32(MemoryLayout<UInt32>.size)
+        _ = AudioObjectGetPropertyData(id, &address, 0, nil, &size, &value)
+        return value
     }
 
     static func name(of id: AudioDeviceID) -> String? {

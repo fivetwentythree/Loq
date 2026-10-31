@@ -1,0 +1,196 @@
+// !$*UTF8*$!
+{
+    archiveVersion = 1;
+    classes = {};
+    objectVersion = 77;
+    objects = {
+        A00000000000000000000001 = {
+            isa = PBXProject;
+            attributes = { BuildIndependentTargetsInParallel = YES; LastUpgradeCheck = 1600; };
+            buildConfigurationList = A00000000000000000000002;
+            compatibilityVersion = "Xcode 16.0";
+            developmentRegion = en;
+            hasScannedForEncodings = 0;
+            knownRegions = (en, Base);
+            mainGroup = A00000000000000000000003;
+            minimizedProjectReferenceProxies = 1;
+            preferredProjectObjectVersion = 77;
+            productRefGroup = A00000000000000000000004;
+            projectDirPath = "";
+            projectRoot = "";
+            targets = (A00000000000000000000010, A00000000000000000000020);
+        };
+        A00000000000000000000003 = {
+            isa = PBXGroup;
+            children = (A00000000000000000000005, A00000000000000000000006, A00000000000000000000004);
+            sourceTree = "<group>";
+        };
+        A00000000000000000000004 = {
+            isa = PBXGroup;
+            children = (A00000000000000000000011, A00000000000000000000021);
+            name = Products;
+            sourceTree = "<group>";
+        };
+        A00000000000000000000005 = {
+            isa = PBXFileSystemSynchronizedRootGroup;
+            exceptions = (A00000000000000000000007);
+            path = Loq;
+            sourceTree = "<group>";
+        };
+        A00000000000000000000006 = {
+            isa = PBXFileSystemSynchronizedRootGroup;
+            path = LoqTests;
+            sourceTree = "<group>";
+        };
+        A00000000000000000000007 = {
+            isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+            membershipExceptions = (Info.plist, Loq.entitlements);
+            target = A00000000000000000000010;
+        };
+        A00000000000000000000010 = {
+            isa = PBXNativeTarget;
+            buildConfigurationList = A00000000000000000000012;
+            buildPhases = (A00000000000000000000013, A00000000000000000000014, A00000000000000000000015);
+            buildRules = ();
+            dependencies = ();
+            fileSystemSynchronizedGroups = (A00000000000000000000005);
+            name = Loq;
+            packageProductDependencies = ();
+            productName = Loq;
+            productReference = A00000000000000000000011;
+            productType = "com.apple.product-type.application";
+        };
+        A00000000000000000000011 = {
+            isa = PBXFileReference;
+            explicitFileType = wrapper.application;
+            includeInIndex = 0;
+            path = Loq.app;
+            sourceTree = BUILT_PRODUCTS_DIR;
+        };
+        A00000000000000000000013 = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+        A00000000000000000000014 = { isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+        A00000000000000000000015 = { isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+        A00000000000000000000020 = {
+            isa = PBXNativeTarget;
+            buildConfigurationList = A00000000000000000000022;
+            buildPhases = (A00000000000000000000023, A00000000000000000000024, A00000000000000000000025);
+            buildRules = ();
+            dependencies = (A00000000000000000000026);
+            fileSystemSynchronizedGroups = (A00000000000000000000006);
+            name = LoqTests;
+            packageProductDependencies = ();
+            productName = LoqTests;
+            productReference = A00000000000000000000021;
+            productType = "com.apple.product-type.bundle.unit-test";
+        };
+        A00000000000000000000021 = {
+            isa = PBXFileReference;
+            explicitFileType = wrapper.cfbundle;
+            includeInIndex = 0;
+            path = LoqTests.xctest;
+            sourceTree = BUILT_PRODUCTS_DIR;
+        };
+        A00000000000000000000023 = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+        A00000000000000000000024 = { isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+        A00000000000000000000025 = { isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+        A00000000000000000000026 = {
+            isa = PBXTargetDependency;
+            target = A00000000000000000000010;
+            targetProxy = A00000000000000000000027;
+        };
+        A00000000000000000000027 = {
+            isa = PBXContainerItemProxy;
+            containerPortal = A00000000000000000000001;
+            proxyType = 1;
+            remoteGlobalIDString = A00000000000000000000010;
+            remoteInfo = Loq;
+        };
+        A00000000000000000000002 = { isa = XCConfigurationList; buildConfigurations = (A00000000000000000000030, A00000000000000000000031); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+        A00000000000000000000012 = { isa = XCConfigurationList; buildConfigurations = (A00000000000000000000032, A00000000000000000000033); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+        A00000000000000000000022 = { isa = XCConfigurationList; buildConfigurations = (A00000000000000000000034, A00000000000000000000035); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+        A00000000000000000000030 = {
+            isa = XCBuildConfiguration;
+            name = Debug;
+            buildSettings = {
+                CLANG_ENABLE_MODULES = YES;
+                CODE_SIGN_IDENTITY = "-";
+                CODE_SIGN_STYLE = Manual;
+                DEVELOPMENT_TEAM = "";
+                ENABLE_TESTABILITY = YES;
+                GCC_OPTIMIZATION_LEVEL = 0;
+                MACOSX_DEPLOYMENT_TARGET = 14.0;
+                SDKROOT = macosx;
+                SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+                SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+                SWIFT_VERSION = 5.0;
+            };
+        };
+        A00000000000000000000031 = {
+            isa = XCBuildConfiguration;
+            name = Release;
+            buildSettings = {
+                CLANG_ENABLE_MODULES = YES;
+                CODE_SIGN_IDENTITY = "-";
+                CODE_SIGN_STYLE = Manual;
+                DEVELOPMENT_TEAM = "";
+                MACOSX_DEPLOYMENT_TARGET = 14.0;
+                SDKROOT = macosx;
+                SWIFT_COMPILATION_MODE = wholemodule;
+                SWIFT_OPTIMIZATION_LEVEL = "-O";
+                SWIFT_VERSION = 5.0;
+            };
+        };
+        A00000000000000000000032 = {
+            isa = XCBuildConfiguration; name = Debug;
+            buildSettings = {
+                CODE_SIGN_ENTITLEMENTS = Loq/Loq.entitlements;
+                CURRENT_PROJECT_VERSION = 2;
+                ENABLE_APP_SANDBOX = YES;
+                ENABLE_HARDENED_RUNTIME = YES;
+                INFOPLIST_FILE = Loq/Info.plist;
+                LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks");
+                MARKETING_VERSION = 0.2.0;
+                PRODUCT_BUNDLE_IDENTIFIER = local.subvox;
+                PRODUCT_NAME = "$(TARGET_NAME)";
+            };
+        };
+        A00000000000000000000033 = {
+            isa = XCBuildConfiguration; name = Release;
+            buildSettings = {
+                CODE_SIGN_ENTITLEMENTS = Loq/Loq.entitlements;
+                CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
+                CURRENT_PROJECT_VERSION = 2;
+                ENABLE_APP_SANDBOX = YES;
+                ENABLE_HARDENED_RUNTIME = YES;
+                INFOPLIST_FILE = Loq/Info.plist;
+                LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks");
+                MARKETING_VERSION = 0.2.0;
+                PRODUCT_BUNDLE_IDENTIFIER = local.subvox;
+                PRODUCT_NAME = "$(TARGET_NAME)";
+            };
+        };
+        A00000000000000000000034 = {
+            isa = XCBuildConfiguration; name = Debug;
+            buildSettings = {
+                BUNDLE_LOADER = "$(TEST_HOST)";
+                GENERATE_INFOPLIST_FILE = YES;
+                LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks", "@loader_path/../Frameworks");
+                PRODUCT_BUNDLE_IDENTIFIER = local.subvox.tests;
+                PRODUCT_NAME = "$(TARGET_NAME)";
+                TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Loq.app/Contents/MacOS/Loq";
+            };
+        };
+        A00000000000000000000035 = {
+            isa = XCBuildConfiguration; name = Release;
+            buildSettings = {
+                BUNDLE_LOADER = "$(TEST_HOST)";
+                GENERATE_INFOPLIST_FILE = YES;
+                LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks", "@loader_path/../Frameworks");
+                PRODUCT_BUNDLE_IDENTIFIER = local.subvox.tests;
+                PRODUCT_NAME = "$(TARGET_NAME)";
+                TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Loq.app/Contents/MacOS/Loq";
+            };
+        };
+    };
+    rootObject = A00000000000000000000001;
+}

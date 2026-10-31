@@ -172,24 +172,16 @@ struct DecodeView: View {
     private var micPanel: some View {
         GroupBox("Microphone transcript (reference)") {
             VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Button(model.audio.isRunning ? "Stop Mic" : "Start Mic") {
-                        Task { await model.toggleMic() }
-                    }
-                    LevelMeter(value: Double(model.audio.level))
-                    Button("Clear", action: model.transcriber.clear)
-                }
+                MicrophoneControls()
+                Button("Clear Transcript", action: model.transcriber.clear)
                 Text(model.transcriber.text.isEmpty ? "Whisper or speak to compare against the motion decoder." : model.transcriber.text)
                     .foregroundStyle(model.transcriber.text.isEmpty ? .secondary : .primary)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, minHeight: 60, alignment: .topLeading)
                 if model.transcriber.isRunning {
-                    Text(model.transcriber.isOnDevice ? "On-device recognition" : "Server recognition")
-                        .font(.caption2)
+                    Text("On-device recognition · no server fallback")
+                        .font(.caption)
                         .foregroundStyle(.secondary)
-                }
-                if let error = model.audio.error ?? model.transcriber.error {
-                    Text(error).font(.caption).foregroundStyle(.red)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

@@ -46,52 +46,66 @@ final class AudioSink: @unchecked Sendable {
 @MainActor @Observable
 final class AudioService {
     private(set) var isRunning = false
+    private(set) var isStarting = false
     private(set) var level: Float = 0
     private(set) var devices: [AudioDevices.Device] = []
     private(set) var activeDeviceName: String?
+    private(set) var outputDeviceName: String?
     private(set) var error: String?
-    /// `nil` means "system default input".
-    var selectedDeviceID: AudioDeviceID? {
-        didSet {
-            guard oldValue != selectedDeviceID, isRunning else { return }
-            stop()
-            Task { await start() }
-        }
-    }
+    /// `nil` chooses a built-in or other non-Bluetooth microphone.
+    var selectedDeviceID: AudioDeviceID?
 
     @ObservationIgnored let sink = AudioSink()
     @ObservationIgnored private var engine: AVAudioEngine?
+    @ObservationIgnored private var generation = 0
+
+    var recommendedDevice: AudioDevices.Device? {
+        AudioDevices.recommendedInput(in: devices, defaultID: AudioDevices.defaultInputID())
+    }
 
     func refreshDevices() {
         devices = AudioDevices.inputDevices()
+        outputDeviceName = AudioDevices.defaultOutputName()
     }
 
     func start() async {
-        guard !isRunning else { return }
+        guard !isRunning, !isStarting else { return }
+        generation += 1
+        let run = generation
+        isStarting = true
+        defer { if generation == run { isStarting = false } }
         error = nil
 
-        guard await AVCaptureDevice.requestAccess(for: .audio) else {
+        let allowed = await AVCaptureDevice.requestAccess(for: .audio)
+        guard generation == run else { return }
+        guard allowed else {
             error = "Microphone access denied. Enable it in System Settings › Privacy & Security."
+            return
+        }
+
+        refreshDevices()
+        let deviceID = selectedDeviceID ?? recommendedDevice?.id
+        guard let deviceID, devices.contains(where: { $0.id == deviceID }) else {
+            error = "Choose an available microphone. Use the Mac microphone to keep AirPods motion available."
             return
         }
 
         let engine = AVAudioEngine()
         let input = engine.inputNode
-        let deviceID = selectedDeviceID ?? AudioDevices.defaultInputID()
-        if let selectedDeviceID, let unit = input.audioUnit {
-            var id = selectedDeviceID
+        if let unit = input.audioUnit {
+            var id = deviceID
             let status = AudioUnitSetProperty(
                 unit, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, 0,
                 &id, UInt32(MemoryLayout<AudioDeviceID>.size))
             if status != noErr {
-                error = "Couldn't switch input device (\(status))."
+                error = "Couldn’t use this microphone (\(status)). Refresh inputs and choose another device."
                 return
             }
         }
 
         let format = input.outputFormat(forBus: 0)
         guard format.sampleRate > 0, format.channelCount > 0 else {
-            error = "Input device has no usable format."
+            error = "This microphone has no usable audio format. Choose another input."
             return
         }
 
@@ -110,14 +124,17 @@ final class AudioService {
         }
 
         self.engine = engine
-        activeDeviceName = deviceID.flatMap(AudioDevices.name(of:))
+        activeDeviceName = AudioDevices.name(of: deviceID)
         isRunning = true
     }
 
     func stop() {
-        guard let engine else { return }
-        engine.inputNode.removeTap(onBus: 0)
-        engine.stop()
+        generation += 1
+        isStarting = false
+        if let engine {
+            engine.inputNode.removeTap(onBus: 0)
+            engine.stop()
+        }
         self.engine = nil
         sink.setLevelHandler(nil)
         isRunning = false

@@ -1,5 +1,13 @@
-*.xcodeproj
 build/
 DerivedData/
 .DS_Store
 xcuserdata/
+*.xcuserstate
+Loq.xcodeproj/project.xcworkspace/
+
+# Local training and recordings are not source files.
+dataset.json
+Sessions/
+*.caf
+*.xcresult/
+*.xctestproducts/

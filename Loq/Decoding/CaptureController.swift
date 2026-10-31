@@ -56,6 +56,22 @@ final class CaptureController {
         isCalibrating = true
     }
 
+    /// Discard partial captures after disconnects, pauses, or screen changes.
+    func cancel(resetCalibration: Bool = false) {
+        buffer.removeAll()
+        preroll.removeAll()
+        quietSince = nil
+        isCapturing = false
+        isManual = false
+        if resetCalibration {
+            calibration.removeAll()
+            calibrationEnd = nil
+            isCalibrating = false
+            noiseFloor = nil
+            energy = 0
+        }
+    }
+
     func ingest(_ sample: MotionSample) {
         let e = MotionFeatures.energy(sample)
         energy = energy * 0.6 + e * 0.4

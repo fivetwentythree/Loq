@@ -4,7 +4,7 @@ import Observation
 /// Records synchronized motion CSV + microphone audio + labelled segment events for offline
 /// analysis (normal speech vs. whisper vs. silent mouthing).
 ///
-/// Output: ~/Documents/Subvox/Sessions/<timestamp>-<condition>/
+/// Output: sandbox Documents/Subvox/Sessions/<timestamp>-<condition>-<id>/
 ///   motion.csv  — every headphone-motion sample, t relative to session start
 ///   audio.caf   — microphone audio (if the mic is running)
 ///   events.csv  — captured segments with their label / prediction
@@ -35,6 +35,7 @@ final class SessionRecorder {
     private(set) var error: String?
 
     static var root: URL {
+        // Preserve existing recordings when upgrading from the original Subvox-based build.
         URL.documentsDirectory.appending(path: "Subvox/Sessions", directoryHint: .isDirectory)
     }
 
@@ -52,7 +53,7 @@ final class SessionRecorder {
         error = nil
         let stamp = Date().formatted(.iso8601.year().month().day().time(includingFractionalSeconds: false))
             .replacingOccurrences(of: ":", with: "")
-        let dir = Self.root.appending(path: "\(stamp)-\(condition.slug)", directoryHint: .isDirectory)
+        let dir = Self.root.appending(path: "\(stamp)-\(condition.slug)-\(UUID().uuidString.prefix(8))", directoryHint: .isDirectory)
         do {
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
             motionHandle = try Self.makeFile(dir.appending(path: "motion.csv"), header: MotionSample.csvHeader)
@@ -122,7 +123,7 @@ final class SessionRecorder {
             String(format: "%.4f", first.t - startUptime),
             String(format: "%.4f", last.t - startUptime),
             kind,
-            label.replacingOccurrences(of: ",", with: " "),
+            CSV.cell(label),
             confidence.map { String(format: "%.3f", $0) } ?? "",
         ].joined(separator: ",")
         eventsHandle?.write(Data((row + "\n").utf8))

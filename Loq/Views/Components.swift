@@ -80,6 +80,7 @@ struct SignalPlot: View {
 }
 
 struct LevelMeter: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var value: Double
     var marker: Double?
     var tint: Color = .green
@@ -98,7 +99,7 @@ struct LevelMeter: View {
             }
         }
         .frame(height: 8)
-        .animation(.linear(duration: 0.08), value: value)
+        .animation(reduceMotion ? nil : .linear(duration: 0.08), value: value)
     }
 }
 
@@ -110,16 +111,19 @@ struct HoldToCaptureButton: View {
     var onBegin: () -> Void
     var onEnd: () -> Void
 
-    @State private var pressed = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
+        Button {
+            isCapturing ? onEnd() : onBegin()
+        } label: {
         VStack(spacing: 6) {
             Image(systemName: isCapturing ? "waveform" : "mouth")
                 .font(.system(size: 30, weight: .medium))
-                .symbolEffect(.variableColor.iterative, isActive: isCapturing)
-            Text(isCapturing ? "Capturing…" : title)
+                .symbolEffect(.variableColor.iterative, isActive: isCapturing && !reduceMotion)
+            Text(isCapturing ? "Finish capture" : title)
                 .font(.headline)
-            Text("Hold Space or press and hold here")
+            Text("Hold Space, or click to start and finish")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -130,20 +134,11 @@ struct HoldToCaptureButton: View {
         .overlay(
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(isCapturing ? Color.red : Color.accentColor.opacity(0.4), lineWidth: isCapturing ? 2 : 1))
-        .contentShape(Rectangle())
-        .opacity(isEnabled ? 1 : 0.4)
-        .gesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in
-                    guard isEnabled, !pressed else { return }
-                    pressed = true
-                    onBegin()
-                }
-                .onEnded { _ in
-                    guard pressed else { return }
-                    pressed = false
-                    onEnd()
-                })
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .accessibilityLabel(isCapturing ? "Finish motion capture" : title)
+        .accessibilityHint("Click to start, then click again to finish. You can also hold Space.")
     }
 }
 
@@ -163,7 +158,8 @@ struct MotionStatusBadge: View {
     private var color: Color {
         switch status {
         case .streaming: .green
-        case .waiting: .orange
+        case .waiting, .connecting, .stalled: .orange
+        case .paused: .secondary
         default: .red
         }
     }

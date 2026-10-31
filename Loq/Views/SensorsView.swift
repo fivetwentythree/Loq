@@ -3,6 +3,7 @@ import SwiftUI
 
 struct SensorsView: View {
     @Environment(AppModel.self) private var model
+    @FocusState private var startButtonFocused: Bool
 
     var body: some View {
         let motion = model.motion
@@ -10,6 +11,12 @@ struct SensorsView: View {
 
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Check your AirPods").font(.title2.weight(.semibold))
+                    Text("Connect AirPods Pro 2 and check live motion before training. Silent-word decoding is an experiment: start with a few words and compare the evaluation against chance.")
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 HStack(alignment: .top, spacing: 16) {
                     motionCard
                     MicrophoneCard()
@@ -35,18 +42,32 @@ struct SensorsView: View {
 
     private var motionCard: some View {
         let motion = model.motion
-        return GroupBox("AirPods motion") {
-            VStack(alignment: .leading, spacing: 8) {
+        return GroupBox("AirPods Pro 2 · motion") {
+            VStack(alignment: .leading, spacing: 12) {
                 LabeledContent("Status", value: motion.status.label)
+                LabeledContent("Sound output", value: model.audio.outputDeviceName ?? "Refresh to check")
                 LabeledContent("Sample rate", value: String(format: "%.1f Hz", motion.sampleRate))
                 LabeledContent("Samples", value: "\(motion.sampleCount)")
+                if let location = motion.latest?.sensorLocation {
+                    LabeledContent("Motion source", value: location)
+                }
                 if let s = motion.latest {
                     LabeledContent("Gravity", value: String(format: "%.2f, %.2f, %.2f", s.gx, s.gy, s.gz))
                 }
-                if motion.status == .waiting {
-                    Text("Put in AirPods Pro and make sure they're the active output on this Mac.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                Text(motion.status.guidance)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack {
+                    Button(motion.isEnabled ? "Pause All" : "Start Motion") {
+                        motion.isEnabled ? model.pauseSensors() : model.startMotion()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .focused($startButtonFocused)
+                    Button("Retry Connection", action: model.retryMotion)
+                }
+                .defaultFocus($startButtonFocused, true)
+                Button("Open System Settings") {
+                    NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/System Settings.app"))
                 }
             }
             .font(.callout.monospacedDigit())
@@ -57,39 +78,54 @@ struct SensorsView: View {
 }
 
 private struct MicrophoneCard: View {
+    var body: some View {
+        GroupBox("Microphone · optional") {
+            MicrophoneControls().padding(6)
+        }
+    }
+}
+
+struct MicrophoneControls: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
         @Bindable var audio = model.audio
-        GroupBox("Microphone") {
-            VStack(alignment: .leading, spacing: 10) {
+        return VStack(alignment: .leading, spacing: 12) {
                 Picker("Input", selection: $audio.selectedDeviceID) {
-                    Text("System default").tag(AudioDeviceID?.none)
+                    Text(audio.recommendedDevice.map { "Recommended: \($0.name)" } ?? "Recommended: non-Bluetooth mic")
+                        .tag(AudioDeviceID?.none)
                     ForEach(audio.devices) { device in
                         Text(device.name).tag(Optional(device.id))
                     }
                 }
+                .disabled(audio.isRunning || audio.isStarting || model.recorder.isRecording)
                 HStack {
-                    Button(audio.isRunning ? "Stop Mic" : "Start Mic") {
+                    Button(audio.isStarting ? "Starting Mic…" : audio.isRunning ? "Stop Mic" : "Start Mic") {
                         Task { await model.toggleMic() }
                     }
+                    .disabled(audio.isStarting)
                     Button("Refresh", systemImage: "arrow.clockwise") { audio.refreshDevices() }
                         .labelStyle(.iconOnly)
                     LevelMeter(value: Double(audio.level))
                 }
+                Toggle("Transcribe on this Mac", isOn: Binding(
+                    get: { model.transcriber.isRunning || model.transcriber.isStarting },
+                    set: { _ in Task { await model.toggleTranscription() } }))
+                    .disabled(!audio.isRunning || model.transcriber.isStarting)
                 if let name = audio.activeDeviceName {
                     Text("Capturing from \(name)").font(.caption).foregroundStyle(.secondary)
                 }
                 if let error = audio.error ?? model.transcriber.error {
                     Text(error).font(.caption).foregroundStyle(.red)
                 }
-                Text("Selecting AirPods as input switches them to the Bluetooth headset profile, which can lower playback quality.")
-                    .font(.caption2)
+                Text("Use the Mac microphone alongside AirPods motion. Choosing an AirPods microphone changes its Bluetooth audio profile and may interrupt motion. Stop the mic before changing inputs.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("Motion works with the mic off. Transcription is optional and stays on this Mac; server recognition is disabled.")
+                    .font(.caption)
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(6)
-        }
     }
 }
 
@@ -107,17 +143,17 @@ private struct RecordingCard: View {
                     .pickerStyle(.segmented)
                     .disabled(recorder.isRecording)
                 }
-                TextField("Prompt / what you're saying (e.g. “yes no yes stop”)", text: $recorder.prompt)
+                TextField("Prompt", text: $recorder.prompt, prompt: Text("yes no yes stop"))
                     .textFieldStyle(.roundedBorder)
                 HStack {
                     Button {
-                        recorder.isRecording ? recorder.stop() : recorder.start(audio: model.audio)
+                        model.toggleRecording()
                     } label: {
-                        Label(recorder.isRecording ? "Stop" : "Record",
+                        Label(recorder.isRecording ? "Stop Recording & Mic" : "Record Session",
                               systemImage: recorder.isRecording ? "stop.fill" : "record.circle")
                     }
                     .tint(recorder.isRecording ? .red : .accentColor)
-                    .buttonStyle(.borderedProminent)
+                    .disabled(!recorder.isRecording && model.motion.status != .streaming)
 
                     if recorder.isRecording, let startedAt = recorder.startedAt {
                         Text(startedAt, style: .timer).monospacedDigit()
@@ -132,6 +168,9 @@ private struct RecordingCard: View {
                 Text(model.audio.isRunning
                      ? "Motion + audio will be recorded. While recording, hold Space to mark each utterance."
                      : "Motion only — start the mic above to also record audio. Hold Space to mark each utterance.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("Recordings and training samples stay in local files until you delete them. Pausing all sensors or closing the window stops recording and the microphone.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 if let error = recorder.error {

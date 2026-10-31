@@ -7,6 +7,7 @@ import Speech
 @MainActor @Observable
 final class MicTranscriber {
     private(set) var isRunning = false
+    private(set) var isStarting = false
     private(set) var text = ""
     private(set) var isOnDevice = false
     private(set) var error: String?
@@ -20,18 +21,27 @@ final class MicTranscriber {
     @ObservationIgnored private var generation = 0
 
     func start(sink: AudioSink) async {
-        guard !isRunning else { return }
+        guard !isRunning, !isStarting else { return }
         error = nil
+        guard let recognizer, recognizer.supportsOnDeviceRecognition else {
+            error = "On-device English recognition is unavailable. Use motion without transcription; server recognition is disabled."
+            return
+        }
+        generation += 1
+        let run = generation
+        isStarting = true
+        defer { if generation == run || isRunning { isStarting = false } }
 
         let status = await withCheckedContinuation { continuation in
             SFSpeechRecognizer.requestAuthorization { continuation.resume(returning: $0) }
         }
+        guard generation == run else { return }
         guard status == .authorized else {
-            error = "Speech recognition not authorized."
+            error = "Allow Speech Recognition for Loq in Privacy & Security, then try again."
             return
         }
-        guard let recognizer, recognizer.isAvailable else {
-            error = "Speech recognizer unavailable."
+        guard recognizer.isAvailable else {
+            error = "Local speech recognition is unavailable. Try again later or use motion only."
             return
         }
 
@@ -43,6 +53,8 @@ final class MicTranscriber {
 
     func stop() {
         isRunning = false
+        isStarting = false
+        isOnDevice = false
         generation += 1
         if let sinkID { sink?.remove(sinkID) }
         sinkID = nil
@@ -58,30 +70,45 @@ final class MicTranscriber {
 
     private func startTask() {
         guard isRunning, let recognizer else { return }
+        guard let request = Self.onDeviceRequest(supported: recognizer.supportsOnDeviceRecognition) else {
+            stop()
+            error = "On-device recognition became unavailable. Transcription stopped; no server fallback is allowed."
+            return
+        }
         generation += 1
 
-        let request = SFSpeechAudioBufferRecognitionRequest()
-        request.shouldReportPartialResults = true
-        request.addsPunctuation = true
-        isOnDevice = recognizer.supportsOnDeviceRecognition
-        request.requiresOnDeviceRecognition = isOnDevice
+        isOnDevice = true
         box.set(request)
 
         task?.cancel()
         task = recognizer.recognitionTask(with: request, resultHandler: Self.resultHandler(owner: self, generation: generation))
     }
 
-    private func handle(generation: Int, partial: String?, isFinal: Bool, failed: Bool) {
+    static func onDeviceRequest(supported: Bool) -> SFSpeechAudioBufferRecognitionRequest? {
+        guard supported else { return nil }
+        let request = SFSpeechAudioBufferRecognitionRequest()
+        request.shouldReportPartialResults = true
+        request.addsPunctuation = true
+        request.requiresOnDeviceRecognition = true
+        return request
+    }
+
+    private func handle(generation: Int, partial: String?, isFinal: Bool, errorDescription: String?) {
         guard generation == self.generation, isRunning else { return }
         if let partial {
             text = finalized + partial
         }
-        if isFinal || failed {
+        if isFinal || errorDescription != nil {
             if let partial, !partial.isEmpty { finalized += partial + " " }
             text = finalized
-            // Recognition tasks end on silence/timeout; keep listening with a fresh one.
+            if let errorDescription {
+                stop()
+                error = "Local transcription stopped: \(errorDescription). Try turning transcription on again, or use motion only."
+                return
+            }
+            // Successful tasks end on silence/timeout; keep listening locally.
             Task { @MainActor [weak self] in
-                try? await Task.sleep(for: .milliseconds(failed ? 500 : 50))
+                try? await Task.sleep(for: .milliseconds(50))
                 self?.startTask()
             }
         }
@@ -93,9 +120,9 @@ final class MicTranscriber {
         { [weak owner] result, error in
             let partial = result?.bestTranscription.formattedString
             let isFinal = result?.isFinal ?? false
-            let failed = error != nil
+            let errorDescription = error?.localizedDescription
             Task { @MainActor in
-                owner?.handle(generation: generation, partial: partial, isFinal: isFinal, failed: failed)
+                owner?.handle(generation: generation, partial: partial, isFinal: isFinal, errorDescription: errorDescription)
             }
         }
     }

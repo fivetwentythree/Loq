@@ -1,0 +1,8 @@
+schemaVersion: 1
+enabledWorkflows: [macos, project-discovery]
+sentryDisabled: true
+sessionDefaults:
+  projectPath: ./Loq.xcodeproj
+  scheme: Loq
+  configuration: Debug
+  derivedDataPath: ./build

@@ -29,8 +29,16 @@ final class AppModel {
     let capture = CaptureController()
     let recorder = SessionRecorder()
 
-    var screen: Screen = .train {
-        didSet { syncCaptureMode() }
+    var hasActiveSensors: Bool {
+        motion.isEnabled || audio.isRunning || audio.isStarting || transcriber.isRunning
+            || transcriber.isStarting || recorder.isRecording
+    }
+
+    var screen: Screen = .sensors {
+        didSet {
+            capture.cancel()
+            syncCaptureMode()
+        }
     }
 
     // MARK: Training
@@ -67,10 +75,44 @@ final class AppModel {
         guard !started else { return }
         started = true
         motion.onSample = { [weak self] sample in self?.ingest(sample) }
+        motion.onInterruption = { [weak self] in self?.capture.cancel(resetCalibration: true) }
         capture.onSegment = { [weak self] segment in self?.handleSegment(segment) }
-        motion.start()
         audio.refreshDevices()
         installKeyMonitor()
+    }
+
+    func startMotion() {
+        motion.start()
+        audio.refreshDevices()
+    }
+
+    func retryMotion() {
+        motion.retry()
+        audio.refreshDevices()
+    }
+
+    func pauseSensors() {
+        recorder.stop()
+        transcriber.stop()
+        audio.stop()
+        motion.stop()
+        capture.cancel(resetCalibration: true)
+    }
+
+    func stop() {
+        pauseSensors()
+        if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
+        keyMonitor = nil
+        started = false
+    }
+
+    func toggleRecording() {
+        if recorder.isRecording {
+            recorder.stop()
+            stopMicrophone()
+        } else if motion.status == .streaming {
+            recorder.start(audio: audio)
+        }
     }
 
     private func ingest(_ sample: MotionSample) {
@@ -121,6 +163,7 @@ final class AppModel {
     }
 
     private var spaceCapturesMotion: Bool {
+        guard motion.status == .streaming else { return false }
         // Let text fields keep the space bar.
         if NSApp.keyWindow?.firstResponder is NSText { return false }
         switch screen {
@@ -200,12 +243,24 @@ final class AppModel {
     // MARK: Mic
 
     func toggleMic() async {
-        if audio.isRunning {
-            transcriber.stop()
-            audio.stop()
+        if audio.isRunning || audio.isStarting {
+            stopMicrophone()
         } else {
             await audio.start()
-            if audio.isRunning { await transcriber.start(sink: audio.sink) }
+        }
+    }
+
+    func stopMicrophone() {
+        if audio.isRunning { recorder.stop() }
+        transcriber.stop()
+        audio.stop()
+    }
+
+    func toggleTranscription() async {
+        if transcriber.isRunning || transcriber.isStarting {
+            transcriber.stop()
+        } else if audio.isRunning {
+            await transcriber.start(sink: audio.sink)
         }
     }
 }

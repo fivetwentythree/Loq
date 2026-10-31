@@ -3,6 +3,8 @@ import CoreMotion
 /// One processed headphone-motion reading. `t` is seconds since boot (same clock as
 /// `ProcessInfo.systemUptime` and `AVAudioTime` host time), so motion and audio line up.
 struct MotionSample: Codable, Hashable, Sendable {
+    // Optional for compatibility with datasets recorded before sensor location was stored.
+    var sensorLocation: String?
     var t: TimeInterval
     // User acceleration (g), gravity removed.
     var ax: Double, ay: Double, az: Double
@@ -16,6 +18,11 @@ struct MotionSample: Codable, Hashable, Sendable {
     var qw: Double, qx: Double, qy: Double, qz: Double
 
     init(_ m: CMDeviceMotion) {
+        switch m.sensorLocation {
+        case .headphoneLeft: sensorLocation = "Left AirPod"
+        case .headphoneRight: sensorLocation = "Right AirPod"
+        default: sensorLocation = nil
+        }
         t = m.timestamp
         ax = m.userAcceleration.x; ay = m.userAcceleration.y; az = m.userAcceleration.z
         rx = m.rotationRate.x; ry = m.rotationRate.y; rz = m.rotationRate.z
@@ -37,11 +44,11 @@ struct MotionSample: Codable, Hashable, Sendable {
         (qw, qx, qy, qz) = (1, 0, 0, 0)
     }
 
-    static let csvHeader = "t,ax,ay,az,rx,ry,rz,pitch,roll,yaw,gx,gy,gz,qw,qx,qy,qz"
+    static let csvHeader = "t,ax,ay,az,rx,ry,rz,pitch,roll,yaw,gx,gy,gz,qw,qx,qy,qz,sensorLocation"
 
     func csvRow(relativeTo t0: TimeInterval) -> String {
         [t - t0, ax, ay, az, rx, ry, rz, pitch, roll, yaw, gx, gy, gz, qw, qx, qy, qz]
             .map { String(format: "%.6f", $0) }
-            .joined(separator: ",")
+            .joined(separator: ",") + "," + CSV.cell(sensorLocation ?? "")
     }
 }
